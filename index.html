@@ -1204,7 +1204,7 @@
           <textarea id="fmsg" name="message" required placeholder="What are you working on?"></textarea>
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Send Message</button>
-        <p class="form-note" id="formNote">Direct web submission supported. Instant inbox delivery.</p>
+        <p class="form-note" id="formNote">Direct web submission active. Messages deliver directly to panditsaarthak586@gmail.com.</p>
       </form>
     </div>
   </div>
@@ -1325,57 +1325,54 @@ function closeModal(){
   document.body.style.overflow = '';
 }
 
-/* ---------- CONTACT FORM (AJAX Web3Forms / mailto fallback) ---------- */
+/* ---------- CONTACT FORM (Web3Forms + Browser Gmail Fallback) ---------- */
 async function handleSubmit(e){
   e.preventDefault();
   const form = document.getElementById('contactForm');
   const btn = form.querySelector('button[type="submit"]');
   const note = document.getElementById('formNote');
   const keyInput = form.querySelector('input[name="access_key"]');
+  
+  const name = document.getElementById('fname').value;
+  const email = document.getElementById('femail').value;
+  const msg = document.getElementById('fmsg').value;
 
-  if (!keyInput || keyInput.value === 'YOUR_ACCESS_KEY_HERE' || !keyInput.value.trim()) {
-    const name = document.getElementById('fname').value;
-    const email = document.getElementById('femail').value;
-    const msg = document.getElementById('fmsg').value;
-    const subject = encodeURIComponent(`Portfolio contact from ${name}`);
-    const body = encodeURIComponent(`${msg}\n\n— ${name} (${email})`);
-    window.location.href = `mailto:panditsaarthak586@gmail.com?subject=${subject}&body=${body}`;
-    return false;
-  }
+  if (keyInput && keyInput.value && keyInput.value !== 'YOUR_ACCESS_KEY_HERE') {
+    btn.disabled = true;
+    btn.textContent = 'Sending Message...';
+    note.style.color = 'var(--text-muted)';
+    note.textContent = 'Sending message directly...';
 
-  btn.disabled = true;
-  btn.textContent = 'Sending Message...';
-  note.style.color = 'var(--text-muted)';
-  note.textContent = 'Sending message directly...';
-
-  try {
-    const formData = new FormData(form);
-    const res = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      body: formData
-    });
-    const data = await res.json();
-    if(data.success){
-      note.style.color = '#5fd68a';
-      note.textContent = '✓ Thank you! Your message has been delivered directly to Saarthak.';
-      form.reset();
-    } else {
-      note.style.color = 'var(--accent)';
-      note.textContent = 'Something went wrong. Opening mail client instead...';
-      setTimeout(() => {
-        window.location.href = `mailto:panditsaarthak586@gmail.com?subject=Contact&body=${encodeURIComponent(document.getElementById('fmsg').value)}`;
-      }, 1000);
+    try {
+      const formData = new FormData(form);
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if(data.success){
+        note.style.color = '#5fd68a';
+        note.textContent = '✓ Thank you! Your message has been delivered directly to Saarthak.';
+        form.reset();
+        btn.disabled = false;
+        btn.textContent = 'Send Message';
+        return false;
+      }
+    } catch(err) {
+      console.error(err);
     }
-  } catch(err) {
-    note.style.color = 'var(--accent)';
-    note.textContent = 'Network error. Opening mail client...';
-    setTimeout(() => {
-      window.location.href = `mailto:panditsaarthak586@gmail.com?subject=Contact&body=${encodeURIComponent(document.getElementById('fmsg').value)}`;
-    }, 1000);
-  } finally {
     btn.disabled = false;
     btn.textContent = 'Send Message';
   }
+
+  // Fallback: Open Gmail in Browser with Pre-filled Message
+  const subject = encodeURIComponent(`Portfolio contact from ${name}`);
+  const body = encodeURIComponent(`${msg}\n\n— Sent by ${name} (${email})`);
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=panditsaarthak586@gmail.com&su=${subject}&body=${body}`;
+  
+  window.open(gmailUrl, '_blank');
+  note.style.color = '#5fd68a';
+  note.textContent = '✓ Opened Gmail with your pre-filled message!';
   return false;
 }
 
