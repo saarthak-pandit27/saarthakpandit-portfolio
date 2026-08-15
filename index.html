@@ -1190,6 +1190,7 @@
       </div>
 
       <form class="reveal" id="contactForm" onsubmit="return handleSubmit(event)">
+        <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE">
         <div class="form-group">
           <label for="fname">Name</label>
           <input id="fname" name="name" type="text" required placeholder="Your name">
@@ -1203,7 +1204,7 @@
           <textarea id="fmsg" name="message" required placeholder="What are you working on?"></textarea>
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Send Message</button>
-        <p class="form-note" id="formNote">This form opens your email client — no data is stored or sent to a server.</p>
+        <p class="form-note" id="formNote">Direct web submission supported. Instant inbox delivery.</p>
       </form>
     </div>
   </div>
@@ -1324,15 +1325,57 @@ function closeModal(){
   document.body.style.overflow = '';
 }
 
-/* ---------- CONTACT FORM (mailto, no backend) ---------- */
-function handleSubmit(e){
+/* ---------- CONTACT FORM (AJAX Web3Forms / mailto fallback) ---------- */
+async function handleSubmit(e){
   e.preventDefault();
-  const name = document.getElementById('fname').value;
-  const email = document.getElementById('femail').value;
-  const msg = document.getElementById('fmsg').value;
-  const subject = encodeURIComponent(`Portfolio contact from ${name}`);
-  const body = encodeURIComponent(`${msg}\n\n— ${name} (${email})`);
-  window.location.href = `mailto:panditsaarthak586@gmail.com?subject=${subject}&body=${body}`;
+  const form = document.getElementById('contactForm');
+  const btn = form.querySelector('button[type="submit"]');
+  const note = document.getElementById('formNote');
+  const keyInput = form.querySelector('input[name="access_key"]');
+
+  if (!keyInput || keyInput.value === 'YOUR_ACCESS_KEY_HERE' || !keyInput.value.trim()) {
+    const name = document.getElementById('fname').value;
+    const email = document.getElementById('femail').value;
+    const msg = document.getElementById('fmsg').value;
+    const subject = encodeURIComponent(`Portfolio contact from ${name}`);
+    const body = encodeURIComponent(`${msg}\n\n— ${name} (${email})`);
+    window.location.href = `mailto:panditsaarthak586@gmail.com?subject=${subject}&body=${body}`;
+    return false;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending Message...';
+  note.style.color = 'var(--text-muted)';
+  note.textContent = 'Sending message directly...';
+
+  try {
+    const formData = new FormData(form);
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if(data.success){
+      note.style.color = '#5fd68a';
+      note.textContent = '✓ Thank you! Your message has been delivered directly to Saarthak.';
+      form.reset();
+    } else {
+      note.style.color = 'var(--accent)';
+      note.textContent = 'Something went wrong. Opening mail client instead...';
+      setTimeout(() => {
+        window.location.href = `mailto:panditsaarthak586@gmail.com?subject=Contact&body=${encodeURIComponent(document.getElementById('fmsg').value)}`;
+      }, 1000);
+    }
+  } catch(err) {
+    note.style.color = 'var(--accent)';
+    note.textContent = 'Network error. Opening mail client...';
+    setTimeout(() => {
+      window.location.href = `mailto:panditsaarthak586@gmail.com?subject=Contact&body=${encodeURIComponent(document.getElementById('fmsg').value)}`;
+    }, 1000);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  }
   return false;
 }
 
